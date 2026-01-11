@@ -66,8 +66,8 @@ export default function RootLayout({
 
           <Footer />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
-      <SpeedInsights />
     </html>
   );
 }
