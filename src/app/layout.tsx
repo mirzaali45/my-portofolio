@@ -7,6 +7,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/ThemeProviders";
 import LoadingScreen from "@/components/LoadingScreen";
 import CustomCursor from "@/components/CustomCursors";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Font optimization
 const inter = Inter({
@@ -65,6 +66,7 @@ export default function RootLayout({
 
           <Footer />
         </ThemeProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
