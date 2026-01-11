@@ -8,15 +8,39 @@ import {
   FaPhoneAlt,
   FaMapMarkerAlt,
   FaPaperPlane,
+  FaCheckCircle,
+  FaExclamationCircle,
 } from "react-icons/fa";
+import emailjs from "@emailjs/browser";
+
+// ==========================================
+// KONFIGURASI EMAILJS - MASUKKAN CREDENTIALS ANDA
+// ==========================================
+const EMAILJS_SERVICE_ID = "service_fdvfxaa"; // Ganti dengan Service ID Anda
+const EMAILJS_TEMPLATE_ID = "template_y4hyp0b"; // Template ID Anda
+const EMAILJS_PUBLIC_KEY = "NN2bIEAVjCaQYNsf2"; // Public Key Anda
+// ==========================================
+
+interface FormData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+interface FormStatus {
+  type: "idle" | "submitting" | "success" | "error";
+  message: string;
+}
 
 const ContactForm = () => {
   const [ref, inView] = useInView({
-    triggerOnce: false,
+    triggerOnce: true,
     threshold: 0.1,
+    rootMargin: "0px 0px -10% 0px",
   });
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     subject: "",
@@ -24,9 +48,12 @@ const ContactForm = () => {
   });
 
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  // Perbaikan: mengubah tipe ref menjadi HTMLDivElement
+  const [formStatus, setFormStatus] = useState<FormStatus>({
+    type: "idle",
+    message: "",
+  });
+
+  const formRef = useRef<HTMLFormElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
 
   const handleChange = (
@@ -46,40 +73,112 @@ const ContactForm = () => {
     setFocusedInput(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    // Simulasi pengiriman form
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
-
-      // Reset pesan sukses setelah 5 detik
-      setTimeout(() => {
-        setSubmitSuccess(false);
-      }, 5000);
-    }, 1500);
+  // Validasi email sederhana
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  // Add animated bg effect
+  // Validasi form
+  const validateForm = (): string | null => {
+    if (!formData.name.trim()) {
+      return "Please enter your name";
+    }
+    if (!formData.email.trim()) {
+      return "Please enter your email";
+    }
+    if (!isValidEmail(formData.email)) {
+      return "Please enter a valid email address";
+    }
+    if (!formData.subject.trim()) {
+      return "Please enter a subject";
+    }
+    if (!formData.message.trim()) {
+      return "Please enter your message";
+    }
+    if (formData.message.trim().length < 10) {
+      return "Message must be at least 10 characters";
+    }
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validasi
+    const validationError = validateForm();
+    if (validationError) {
+      setFormStatus({
+        type: "error",
+        message: validationError,
+      });
+      return;
+    }
+
+    setFormStatus({ type: "submitting", message: "" });
+
+    try {
+      // Kirim email menggunakan EmailJS
+      const templateParams = {
+        from_name: formData.name,
+        from_email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        to_name: "Mirza Ali Yusuf",
+      };
+
+      const response = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
+      );
+
+      if (response.status === 200) {
+        setFormStatus({
+          type: "success",
+          message: "Message sent successfully! I will contact you soon.",
+        });
+        setFormData({ name: "", email: "", subject: "", message: "" });
+
+        // Reset status setelah 5 detik
+        setTimeout(() => {
+          setFormStatus({ type: "idle", message: "" });
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("EmailJS Error:", error);
+      setFormStatus({
+        type: "error",
+        message:
+          "Failed to send message. Please try again or contact me directly via email.",
+      });
+
+      // Reset error setelah 5 detik
+      setTimeout(() => {
+        setFormStatus({ type: "idle", message: "" });
+      }, 5000);
+    }
+  };
+
+  // Animated background effect - only on desktop
   useEffect(() => {
-    if (!formContainerRef.current) return;
+    const container = formContainerRef.current;
+    if (!container) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const { clientX, clientY } = e;
-      const { left, top, width, height } =
-        formContainerRef.current!.getBoundingClientRect();
+      if (window.innerWidth <= 768) return;
 
-      // Calculate relative mouse position
+      const { clientX, clientY } = e;
+      const { left, top, width, height } = container.getBoundingClientRect();
+
       const x = (clientX - left) / width;
       const y = (clientY - top) / height;
 
-      // Update gradient position
-      const gradientEl = formContainerRef.current!.querySelector(
+      const gradientEl = container.querySelector(
         ".form-gradient"
       ) as HTMLElement;
+
       if (gradientEl) {
         gradientEl.style.background = `radial-gradient(circle at ${x * 100}% ${
           y * 100
@@ -87,15 +186,21 @@ const ContactForm = () => {
       }
     };
 
-    formContainerRef.current.addEventListener("mousemove", handleMouseMove);
+    let ticking = false;
+    const throttledMouseMove = (e: MouseEvent) => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleMouseMove(e);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    container.addEventListener("mousemove", throttledMouseMove);
 
     return () => {
-      if (formContainerRef.current) {
-        formContainerRef.current.removeEventListener(
-          "mousemove",
-          handleMouseMove
-        );
-      }
+      container.removeEventListener("mousemove", throttledMouseMove);
     };
   }, []);
 
@@ -141,6 +246,8 @@ const ContactForm = () => {
     },
   ];
 
+  const isSubmitting = formStatus.type === "submitting";
+
   return (
     <section
       id="contact"
@@ -152,9 +259,8 @@ const ContactForm = () => {
         <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-secondary/70 blur-3xl"></div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div ref={ref} className="container mx-auto px-4 relative z-10">
         <motion.div
-          ref={ref}
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
@@ -179,19 +285,19 @@ const ContactForm = () => {
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-12"
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12"
         >
           {/* Contact Information */}
           <motion.div variants={itemVariants} className="lg:col-span-1">
-            <div className="glass-card p-8 rounded-xl backdrop-blur-sm h-full flex flex-col">
-              <h3 className="text-2xl font-bold mb-8 text-center lg:text-left">
+            <div className="glass-card p-6 sm:p-8 rounded-xl backdrop-blur-sm h-full flex flex-col">
+              <h3 className="text-xl md:text-2xl font-bold mb-6 md:mb-8 text-center lg:text-left">
                 Contact Information
               </h3>
 
-              <div className="space-y-8 flex-grow">
+              <div className="space-y-6 md:space-y-8 flex-grow">
                 {contactInfo.map((info, index) => (
-                  <div key={index} className="flex items-start group">
-                    <div className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary p-4 rounded-xl mr-4 group-hover:scale-110 transition-transform">
+                  <div key={index} className="flex items-start space-x-4">
+                    <div className="bg-gradient-to-r from-primary to-secondary p-3 rounded-lg text-white shrink-0">
                       {info.icon}
                     </div>
                     <div>
@@ -200,9 +306,15 @@ const ContactForm = () => {
                       </h4>
                       <a
                         href={info.link}
-                        className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        className="text-gray-600 dark:text-gray-400 hover:text-primary transition-colors break-all"
+                        target={
+                          info.link.startsWith("http") ? "_blank" : undefined
+                        }
+                        rel={
+                          info.link.startsWith("http")
+                            ? "noopener noreferrer"
+                            : undefined
+                        }
                       >
                         {info.value}
                       </a>
@@ -211,32 +323,37 @@ const ContactForm = () => {
                 ))}
               </div>
 
-              <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-gray-200 dark:border-gray-700">
                 <h4 className="text-lg font-medium mb-4 text-center lg:text-left">
                   Let's Get Connected
                 </h4>
                 <div className="flex justify-center lg:justify-start space-x-4">
                   <motion.a
-                    href="#"
+                    href="mailto:mirzaaliyusuf45@gmail.com"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-lg"
+                    aria-label="Send email"
                   >
                     <FaEnvelope />
                   </motion.a>
                   <motion.a
-                    href="#"
+                    href="tel:+6282164867475"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-3 rounded-lg"
+                    aria-label="Call phone"
                   >
                     <FaPhoneAlt />
                   </motion.a>
                   <motion.a
-                    href="#"
+                    href="https://maps.app.goo.gl/DYzXPbdV5wnGfx1L7"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     className="bg-gradient-to-r from-green-500 to-teal-500 text-white p-3 rounded-lg"
+                    aria-label="View location"
                   >
                     <FaMapMarkerAlt />
                   </motion.a>
@@ -247,41 +364,52 @@ const ContactForm = () => {
 
           {/* Contact Form */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
-            {/* Perbaikan: menggunakan formContainerRef bukan formRef */}
             <div
               ref={formContainerRef}
-              className="glass-card p-8 rounded-xl backdrop-blur-sm relative overflow-hidden"
+              className="glass-card p-6 sm:p-8 rounded-xl backdrop-blur-sm relative overflow-hidden"
             >
               {/* Interactive gradient background */}
               <div className="form-gradient absolute inset-0 opacity-50"></div>
 
               <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-8">Send Message</h3>
+                <h3 className="text-xl md:text-2xl font-bold mb-6 md:mb-8">
+                  Send Message
+                </h3>
 
-                {submitSuccess && (
+                {/* Success Message */}
+                {formStatus.type === "success" && (
                   <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-green-100 text-green-800 dark:bg-green-900/60 dark:text-green-300 p-4 rounded-lg mb-6 flex items-center"
                   >
-                    <span className="inline-flex items-center justify-center bg-green-200 dark:bg-green-800 text-green-700 dark:text-green-300 w-8 h-8 rounded-full mr-3">
-                      ✓
-                    </span>
-                    <span>
-                      Message sent successfully! I will contact you soon.
-                    </span>
+                    <FaCheckCircle className="w-5 h-5 mr-3 shrink-0" />
+                    <span>{formStatus.message}</span>
                   </motion.div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {/* Error Message */}
+                {formStatus.type === "error" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-300 p-4 rounded-lg mb-6 flex items-center"
+                  >
+                    <FaExclamationCircle className="w-5 h-5 mr-3 shrink-0" />
+                    <span>{formStatus.message}</span>
+                  </motion.div>
+                )}
+
+                <form ref={formRef} onSubmit={handleSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
+                    {/* Name Input */}
                     <div className="relative">
                       <label
                         htmlFor="name"
-                        className={`absolute left-4 transition-all duration-300 ${
+                        className={`absolute left-3 transition-all duration-300 pointer-events-none z-10 ${
                           focusedInput === "name" || formData.name
-                            ? "-top-2.5 text-xs bg-white dark:bg-dark px-2 text-primary"
-                            : "top-3 text-gray-500"
+                            ? "-top-2 text-xs bg-light dark:bg-dark px-2 text-primary rounded"
+                            : "top-3 text-gray-500 px-1"
                         }`}
                       >
                         Name
@@ -294,17 +422,20 @@ const ContactForm = () => {
                         onChange={handleChange}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                         required
+                        disabled={isSubmitting}
                       />
                     </div>
+
+                    {/* Email Input */}
                     <div className="relative">
                       <label
                         htmlFor="email"
-                        className={`absolute left-4 transition-all duration-300 ${
+                        className={`absolute left-3 transition-all duration-300 pointer-events-none z-10 ${
                           focusedInput === "email" || formData.email
-                            ? "-top-2.5 text-xs bg-white dark:bg-dark px-2 text-primary"
-                            : "top-3 text-gray-500"
+                            ? "-top-2 text-xs bg-light dark:bg-dark px-2 text-primary rounded"
+                            : "top-3 text-gray-500 px-1"
                         }`}
                       >
                         Email
@@ -317,19 +448,21 @@ const ContactForm = () => {
                         onChange={handleChange}
                         onFocus={handleFocus}
                         onBlur={handleBlur}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                         required
+                        disabled={isSubmitting}
                       />
                     </div>
                   </div>
 
-                  <div className="mb-6 relative">
+                  {/* Subject Input */}
+                  <div className="mb-4 md:mb-6 relative">
                     <label
                       htmlFor="subject"
-                      className={`absolute left-4 transition-all duration-300 ${
+                      className={`absolute left-3 transition-all duration-300 pointer-events-none z-10 ${
                         focusedInput === "subject" || formData.subject
-                          ? "-top-2.5 text-xs bg-white dark:bg-dark px-2 text-primary"
-                          : "top-3 text-gray-500"
+                          ? "-top-2 text-xs bg-light dark:bg-dark px-2 text-primary rounded"
+                          : "top-3 text-gray-500 px-1"
                       }`}
                     >
                       Subject
@@ -342,18 +475,20 @@ const ContactForm = () => {
                       onChange={handleChange}
                       onFocus={handleFocus}
                       onBlur={handleBlur}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                       required
+                      disabled={isSubmitting}
                     />
                   </div>
 
-                  <div className="mb-6 relative">
+                  {/* Message Input */}
+                  <div className="mb-4 md:mb-6 relative">
                     <label
                       htmlFor="message"
-                      className={`absolute left-4 transition-all duration-300 ${
+                      className={`absolute left-3 transition-all duration-300 pointer-events-none z-10 ${
                         focusedInput === "message" || formData.message
-                          ? "-top-2.5 text-xs bg-white dark:bg-dark px-2 text-primary"
-                          : "top-3 text-gray-500"
+                          ? "-top-2 text-xs bg-light dark:bg-dark px-2 text-primary rounded"
+                          : "top-3 text-gray-500 px-1"
                       }`}
                     >
                       Message
@@ -361,16 +496,18 @@ const ContactForm = () => {
                     <textarea
                       id="message"
                       name="message"
-                      rows={5}
+                      rows={4}
                       value={formData.message}
                       onChange={handleChange}
                       onFocus={handleFocus}
                       onBlur={handleBlur}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white/50 dark:bg-dark/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
                       required
+                      disabled={isSubmitting}
                     ></textarea>
                   </div>
 
+                  {/* Submit Button */}
                   <motion.button
                     type="submit"
                     disabled={isSubmitting}

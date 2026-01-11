@@ -7,12 +7,18 @@ const LoadingScreen = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading time
+    // Shorter loading time for better UX
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2000);
+    }, 1500);
 
-    return () => clearTimeout(timer);
+    // Prevent scrolling while loading
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      clearTimeout(timer);
+      document.body.style.overflow = "";
+    };
   }, []);
 
   return (
@@ -23,7 +29,7 @@ const LoadingScreen = () => {
           initial={{ opacity: 1 }}
           exit={{
             opacity: 0,
-            transition: { duration: 0.7, ease: "easeInOut" },
+            transition: { duration: 0.5, ease: "easeInOut" },
           }}
         >
           <motion.div
@@ -38,11 +44,11 @@ const LoadingScreen = () => {
               scale: 0.8,
               transition: { duration: 0.3 },
             }}
-            className="text-center"
+            className="text-center px-4"
           >
-            <div className="logo-loading mb-6"></div>
+            <div className="logo-loading mb-6 mx-auto"></div>
             <motion.h1
-              className="text-3xl font-bold text-primary"
+              className="text-2xl md:text-3xl font-bold text-primary"
               initial={{ opacity: 0, y: 20 }}
               animate={{
                 opacity: 1,
@@ -50,10 +56,20 @@ const LoadingScreen = () => {
                 transition: { delay: 0.3, duration: 0.5 },
               }}
             >
-              Portfolio<span className="text-secondary">.</span>
+              Portofolio<span className="text-secondary">.</span>
             </motion.h1>
+            <motion.p
+              className="text-sm text-gray-600 dark:text-gray-400 mt-2"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: { delay: 0.4, duration: 0.5 },
+              }}
+            >
+              Fullstack Developer
+            </motion.p>
             <motion.div
-              className="mt-10 w-64 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden"
+              className="mt-8 w-64 h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden mx-auto"
               initial={{ opacity: 0 }}
               animate={{
                 opacity: 1,
@@ -66,7 +82,7 @@ const LoadingScreen = () => {
                 animate={{
                   width: "100%",
                   transition: {
-                    duration: 1.5,
+                    duration: 1.2,
                     ease: "easeInOut",
                   },
                 }}

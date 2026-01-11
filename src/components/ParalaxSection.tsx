@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 
@@ -27,120 +27,92 @@ const ParallaxSection = ({
 }: ParallaxSectionProps) => {
   const [ref, inView] = useInView({
     triggerOnce: false,
-    threshold: 0.2,
+    threshold: 0.05, // Lower threshold for better mobile experience
   });
 
-  const sectionRef = useRef<HTMLElement>(null);
-  const bgRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(true); // Default to true for SSR
 
-  // Enhanced parallax effect with smooth lerping
+  // Detect if we're on a mobile device
   useEffect(() => {
-    const section = sectionRef.current;
-    const bg = bgRef.current;
-    if (!section || !bg) return;
+    // Skip on server-side rendering
+    if (typeof window === "undefined") return;
 
-    let frameId: number;
-    let targetY = 0;
-    let currentY = 0;
-
-    const handleScroll = () => {
-      const rect = section.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-
-      // Only process when section is in or close to the viewport
-      if (rect.bottom > -windowHeight / 2 && rect.top < windowHeight * 1.5) {
-        const scrolled = window.scrollY;
-        const sectionTop = rect.top + scrolled;
-        const viewportMiddle = scrolled + windowHeight / 2;
-        const sectionMiddle = sectionTop + rect.height / 2;
-
-        // Calculate target parallax offset
-        const relativeScroll = (viewportMiddle - sectionMiddle) * 0.15;
-        targetY = relativeScroll;
-      }
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
     };
 
-    // Smooth animation update
-    const animate = () => {
-      // Lerp (linear interpolation) for smooth movement
-      currentY += (targetY - currentY) * 0.06;
+    // Check initially
+    checkMobile();
 
-      if (Math.abs(targetY - currentY) > 0.01) {
-        bg.style.transform = `translateY(${currentY}px) scale(1.15)`;
-        frameId = requestAnimationFrame(animate);
-      } else {
-        bg.style.transform = `translateY(${targetY}px) scale(1.15)`;
-      }
-    };
-
-    const update = () => {
-      handleScroll();
-      if (!frameId) {
-        frameId = requestAnimationFrame(animate);
-      }
-    };
-
-    window.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-
-    // Initial call
-    update();
+    // Add resize listener
+    window.addEventListener("resize", checkMobile);
 
     return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
+      window.removeEventListener("resize", checkMobile);
     };
   }, []);
 
   const variants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        staggerChildren: 0.2,
-      },
-    },
-  };
-
-  const textVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.5,
+        staggerChildren: 0.1,
       },
     },
   };
 
+  const textVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+      },
+    },
+  };
+
+  // Determine correct alignment class
+  const alignClass =
+    alignItems === "start"
+      ? "items-start"
+      : alignItems === "end"
+      ? "items-end"
+      : "items-center";
+
+  // Generate overlay class
+  const overlayClass =
+    overlay === "light"
+      ? "after:bg-white/60"
+      : overlay === "dark"
+      ? "after:bg-black/60"
+      : "after:bg-gradient-to-b after:from-black/70 after:to-black/30";
+
   return (
     <section
       id={id}
-      ref={sectionRef}
       className={`relative ${
-        height === "full" ? "min-h-screen" : "min-h-[60vh]"
-      } py-24 flex items-${alignItems} justify-center parallax-container overflow-hidden ${
-        overlay === "light"
-          ? "overlay-light"
-          : overlay === "dark"
-          ? "overlay-dark"
-          : "overlay-gradient"
-      }`}
+        height === "full"
+          ? "py-20 md:py-24 min-h-[50vh] md:min-h-[60vh]"
+          : "py-16 md:py-20 min-h-[40vh] md:min-h-[50vh]"
+      } flex ${alignClass} justify-center overflow-hidden`}
     >
-      {/* Enhanced parallax background with hover effect */}
+      {/* Simple background without complex parallax for mobile */}
       <div
-        ref={bgRef}
-        className="parallax-bg transition-transform duration-300"
+        className="absolute inset-0 bg-center bg-cover bg-no-repeat parallax-bg"
         style={{ backgroundImage: `url(${bgImage})` }}
       />
 
+      {/* Overlay */}
+      <div
+        className={`absolute inset-0 after:absolute after:inset-0 after:z-0 ${overlayClass}`}
+      />
+
       {/* Content */}
-      <div className="container mx-auto px-4 parallax-content">
+      <div className="container mx-auto px-4 relative z-10">
         <motion.div
           ref={ref}
           initial="hidden"
@@ -150,10 +122,10 @@ const ParallaxSection = ({
         >
           <motion.h2
             variants={textVariants}
-            className={`text-3xl md:text-4xl lg:text-5xl font-bold mb-8 ${textColor} relative inline-block`}
+            className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-6 ${textColor} relative inline-block`}
           >
             {title}
-            <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></span>
+            <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 sm:w-24 h-1 bg-gradient-to-r from-primary to-secondary rounded-full"></span>
           </motion.h2>
 
           <motion.div variants={textVariants} className="relative">
