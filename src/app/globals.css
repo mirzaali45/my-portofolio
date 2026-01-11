@@ -30,19 +30,68 @@
   --color-glass-border: rgba(255, 255, 255, 0.1);
 }
 
-html {
-  scroll-behavior: smooth;
-  cursor: none;
+/* Make sure there's no horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
-body {
+html {
+  scroll-behavior: smooth;
+  height: -webkit-fill-available;
+}
+
+/* Fix for z-index stacking issues */
+body.menu-open {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Ensure portal elements stack correctly */
+#portal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+#portal-root > * {
+  pointer-events: auto;
+}
+
+/* Create proper isolation contexts for components */
+.isolation-auto {
+  isolation: auto;
+}
+
+.isolation-isolate {
+  isolation: isolate;
+}
+
+/* Only apply cursor: none on desktop devices with a mouse */
+@media (min-width: 768px) {
+  .cursor-active {
+    cursor: none !important;
+  }
+  
+  .cursor-active * {
+    cursor: none !important;
+  }
+}
+
+/* body {
   @apply text-slate-800 dark:text-slate-200 transition-colors duration-500;
   background-color: var(--color-background);
   color: var(--color-foreground);
-  overflow-x: hidden;
-}
+} */
 
-/* Custom cursor */
+/* Custom cursor - only visible on desktop */
 .custom-cursor {
   width: 32px;
   height: 32px;
@@ -83,21 +132,12 @@ body {
   transform: translate(-50%, -50%) scale(0);
 }
 
-/* Hide default cursor when custom cursor is active */
-.cursor-active {
-  cursor: none !important;
-}
-
-.cursor-active * {
-  cursor: none !important;
-}
-
 /* Section styles */
 .section-padding {
-  @apply py-24 px-4 sm:px-8 md:px-16 lg:px-24;
+  @apply py-16 sm:py-24 px-4 sm:px-8 md:px-16 lg:px-24;
 }
 
-/* Parallax effects */
+/* Parallax effects - optimized for performance */
 .parallax-container {
   @apply relative overflow-hidden;
 }
@@ -108,7 +148,6 @@ body {
 
 .parallax-bg {
   @apply absolute inset-0 w-full h-full bg-center bg-cover bg-no-repeat;
-  transform: translateY(calc(var(--parallax-offset) * -1));
   will-change: transform;
 }
 
@@ -123,9 +162,12 @@ body {
   transition: all 0.3s ease;
 }
 
-.glass-card:hover {
-  box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.15);
-  transform: translateY(-5px);
+/* Reduced hover effect on mobile */
+@media (min-width: 768px) {
+  .glass-card:hover {
+    box-shadow: 0 12px 48px 0 rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+  }
 }
 
 /* Hero section gradient background */
@@ -178,22 +220,24 @@ body {
   @apply w-full;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 12px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-slate-200 dark:bg-slate-800;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-primary rounded-full;
-  background-image: linear-gradient(to bottom, var(--color-primary), var(--color-secondary));
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-image: linear-gradient(to bottom, var(--color-secondary), var(--color-accent));
+/* Custom scrollbar - only on desktop */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 12px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-200 dark:bg-slate-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+    background-image: linear-gradient(to bottom, var(--color-primary), var(--color-secondary));
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-image: linear-gradient(to bottom, var(--color-secondary), var(--color-accent));
+  }
 }
 
 /* Utility classes for animations */
@@ -234,8 +278,8 @@ body {
 
 /* Loading logo animation */
 .logo-loading {
-  height: 80px;
-  width: 80px;
+  height: 60px;
+  width: 60px;
   position: relative;
 }
 
@@ -249,8 +293,8 @@ body {
 }
 
 .logo-loading:before {
-  height: 60px;
-  width: 60px;
+  height: 40px;
+  width: 40px;
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -292,13 +336,15 @@ body {
   }
 }
 
-/* Hover card animations */
+/* Hover card animations - only on larger screens */
 .hover-card {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-.hover-card:hover {
-  transform: translateY(-8px);
+@media (min-width: 768px) {
+  .hover-card:hover {
+    transform: translateY(-8px);
+  }
 }
 
 /* Button animations */
@@ -373,14 +419,16 @@ body {
   opacity: 1;
 }
 
-/* 3D Tilt effect */
-.tilt-card {
-  transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1);
-  transform-style: preserve-3d;
-}
-
-.tilt-card:hover {
-  transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
+/* 3D Tilt effect - only on desktop */
+@media (min-width: 768px) {
+  .tilt-card {
+    transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1);
+    transform-style: preserve-3d;
+  }
+  
+  .tilt-card:hover {
+    transform: perspective(1000px) rotateX(5deg) rotateY(5deg);
+  }
 }
 
 /* Reveal on scroll animations */
@@ -412,4 +460,184 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-fill-color: transparent;
+}
+
+/* Animation for floating elements */
+@keyframes floatParticle {
+  0% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-30px) translateX(10px); }
+  50% { transform: translateY(-10px) translateX(30px); }
+  75% { transform: translateY(20px) translateX(10px); }
+  100% { transform: translateY(0) translateX(0); }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  /* Smaller text sizes on mobile */
+  h1, .text-5xl, .text-6xl {
+    font-size: 2.5rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  h2, .text-4xl {
+    font-size: 2rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* Adjusted paddings for mobile */
+  .py-24 {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+  
+  /* Container padding adjustments */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Better spacing for stacked elements */
+  .mb-8 {
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .gap-12 {
+    gap: 2rem !important;
+  }
+}
+
+/* Responsiveness fixes for mobile */
+@media (max-width: 640px) {
+  /* Fix untuk content overflow */
+  body, html {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+  
+  /* Padding yang lebih kecil pada mobile */
+  .container {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Ukuran teks yang lebih kecil pada mobile */
+  h1, .text-5xl, .text-6xl, .text-4xl {
+    font-size: 2rem !important;
+    line-height: 1.2 !important;
+  }
+  
+  h2, .text-3xl {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  p {
+    font-size: 0.95rem !important;
+  }
+  
+  /* Penyesuaian margin untuk mobile */
+  .my-8, .my-12 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .mb-8, .mb-12 {
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .mt-8, .mt-12, .mt-16 {
+    margin-top: 1.5rem !important;
+  }
+  
+  /* Padding yang lebih kecil pada section */
+  section {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+  }
+  
+  /* Penyesuaian gap pada grid dan flexbox */
+  .gap-8, .gap-12 {
+    gap: 1rem !important;
+  }
+  
+  /* Pastikan gambar profil tidak terlalu besar pada mobile */
+  .profile-image {
+    max-width: 160px !important;
+    max-height: 160px !important;
+  }
+}
+
+/* Tablet responsiveness fixes */
+@media (min-width: 641px) and (max-width: 768px) {
+  /* Penyesuaian padding pada container */
+  .container {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
+  
+  /* Ukuran teks yang lebih kecil pada tablet */
+  h1, .text-5xl, .text-6xl {
+    font-size: 2.5rem !important;
+  }
+  
+  section {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+  
+  /* Penyesuaian gap pada grid dan flexbox */
+  .gap-8, .gap-12 {
+    gap: 1.5rem !important;
+  }
+  
+  /* Pastikan gambar profil tidak terlalu besar pada tablet */
+  .profile-image {
+    max-width: 200px !important;
+    max-height: 200px !important;
+  }
+}
+
+/* Menambahkan safe area inset untuk perangkat dengan notch/dynamic island */
+.safe-area-inset {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Memperbaiki viewport height issue pada mobile */
+.min-h-screen {
+  min-height: -webkit-fill-available;
+  min-height: 100vh;
+}
+
+/* Memperbaiki centering yang lebih baik pada mobile */
+.flex-center-mobile {
+  @apply flex justify-center items-center;
+}
+
+/* Fallback font yang lebih baik */
+body {
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* Fix for mobile menu */
+.mobile-menu-open {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+}
+
+/* Fix for z-index layering issues on mobile devices */
+.z-index-reset {
+  isolation: isolate;
+}
+
+.header-menu-container {
+  z-index: 1002 !important;
+  position: relative !important;
 }

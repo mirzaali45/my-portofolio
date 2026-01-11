@@ -46,3 +46,4 @@ export interface ParallaxSectionProps {
   children: React.ReactNode;
   overlay?: "light" | "dark";
 }
+

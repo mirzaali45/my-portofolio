@@ -28,9 +28,11 @@ interface Skill {
 }
 
 const SkillsSection = () => {
+  // Changed to triggerOnce: true and lowered threshold to ensure it stays visible
   const [ref, inView] = useInView({
-    triggerOnce: false,
-    threshold: 0.1,
+    triggerOnce: true,
+    threshold: 0.05,
+    rootMargin: "0px 0px -10% 0px", // Trigger earlier
   });
 
   const containerVariants = {
@@ -165,9 +167,8 @@ const SkillsSection = () => {
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-secondary/70 blur-3xl"></div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div ref={ref} className="container mx-auto px-4 relative z-10">
         <motion.div
-          ref={ref}
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
@@ -192,21 +193,21 @@ const SkillsSection = () => {
           variants={containerVariants}
           initial="hidden"
           animate={inView ? "visible" : "hidden"}
-          className="grid grid-cols-1 md:grid-cols-3 gap-12 mt-16"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 mt-16"
         >
           {/* Frontend Skills */}
           <motion.div
             variants={skillVariants}
-            className="glass-card p-8 rounded-xl backdrop-blur-sm"
+            className="glass-card p-6 sm:p-8 rounded-xl backdrop-blur-sm"
           >
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-16 h-16 rounded-xl mb-4">
-                <FaReact size={32} />
+              <div className="inline-flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-14 h-14 md:w-16 md:h-16 rounded-xl mb-4">
+                <FaReact size={28} />
               </div>
-              <h3 className="text-2xl font-bold">Frontend</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Frontend</h3>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {frontendSkills.map((skill, index) => (
                 <motion.div
                   key={index}
@@ -215,7 +216,9 @@ const SkillsSection = () => {
                 >
                   <div className="flex items-center mb-2">
                     <span className="text-primary mr-3">{skill.icon}</span>
-                    <span className="font-medium text-lg">{skill.name}</span>
+                    <span className="font-medium text-base md:text-lg">
+                      {skill.name}
+                    </span>
                     <span className="ml-auto text-sm text-gray-500">
                       {skill.level}%
                     </span>
@@ -224,7 +227,9 @@ const SkillsSection = () => {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${skill.level}%` }}
+                      animate={
+                        inView ? { width: `${skill.level}%` } : { width: 0 }
+                      }
                       transition={{ duration: 1, delay: index * 0.1 }}
                       className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full"
                     ></motion.div>
@@ -241,16 +246,16 @@ const SkillsSection = () => {
           {/* Backend Skills */}
           <motion.div
             variants={skillVariants}
-            className="glass-card p-8 rounded-xl backdrop-blur-sm"
+            className="glass-card p-6 sm:p-8 rounded-xl backdrop-blur-sm"
           >
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 w-16 h-16 rounded-xl mb-4">
-                <FaNodeJs size={32} />
+              <div className="inline-flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 w-14 h-14 md:w-16 md:h-16 rounded-xl mb-4">
+                <FaNodeJs size={28} />
               </div>
-              <h3 className="text-2xl font-bold">Backend</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Backend</h3>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {backendSkills.map((skill, index) => (
                 <motion.div
                   key={index}
@@ -259,7 +264,9 @@ const SkillsSection = () => {
                 >
                   <div className="flex items-center mb-2">
                     <span className="text-primary mr-3">{skill.icon}</span>
-                    <span className="font-medium text-lg">{skill.name}</span>
+                    <span className="font-medium text-base md:text-lg">
+                      {skill.name}
+                    </span>
                     <span className="ml-auto text-sm text-gray-500">
                       {skill.level}%
                     </span>
@@ -268,7 +275,9 @@ const SkillsSection = () => {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${skill.level}%` }}
+                      animate={
+                        inView ? { width: `${skill.level}%` } : { width: 0 }
+                      }
                       transition={{ duration: 1, delay: index * 0.1 + 0.4 }}
                       className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full"
                     ></motion.div>
@@ -285,16 +294,16 @@ const SkillsSection = () => {
           {/* Other Skills */}
           <motion.div
             variants={skillVariants}
-            className="glass-card p-8 rounded-xl backdrop-blur-sm"
+            className="glass-card p-6 sm:p-8 rounded-xl backdrop-blur-sm"
           >
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 w-16 h-16 rounded-xl mb-4">
-                <FaGitAlt size={32} />
+              <div className="inline-flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 w-14 h-14 md:w-16 md:h-16 rounded-xl mb-4">
+                <FaGitAlt size={28} />
               </div>
-              <h3 className="text-2xl font-bold">Tools & Others</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Tools & Others</h3>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {otherSkills.map((skill, index) => (
                 <motion.div
                   key={index}
@@ -303,7 +312,9 @@ const SkillsSection = () => {
                 >
                   <div className="flex items-center mb-2">
                     <span className="text-primary mr-3">{skill.icon}</span>
-                    <span className="font-medium text-lg">{skill.name}</span>
+                    <span className="font-medium text-base md:text-lg">
+                      {skill.name}
+                    </span>
                     <span className="ml-auto text-sm text-gray-500">
                       {skill.level}%
                     </span>
@@ -312,7 +323,9 @@ const SkillsSection = () => {
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${skill.level}%` }}
+                      animate={
+                        inView ? { width: `${skill.level}%` } : { width: 0 }
+                      }
                       transition={{ duration: 1, delay: index * 0.1 + 0.8 }}
                       className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full"
                     ></motion.div>

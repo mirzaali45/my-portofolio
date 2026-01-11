@@ -6,8 +6,43 @@ const CustomCursor = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const [isMobile, setIsMobile] = useState(true); // Default to true for SSR
 
+  // Check if it's a mobile device - safely
   useEffect(() => {
+    // Skip the effect during SSR
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return;
+    }
+
+    const checkMobile = () => {
+      // Check if browser has touch capability - use standards-compliant properties
+      const hasTouchScreen =
+        "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+      // Check if viewport is small
+      const isSmallScreen = window.innerWidth <= 768;
+
+      setIsMobile(hasTouchScreen || isSmallScreen);
+    };
+
+    // Perform initial check
+    checkMobile();
+
+    // Set up window resize listener
+    window.addEventListener("resize", checkMobile);
+
+    // Clean up
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Set up cursor tracking - only when not on mobile
+  useEffect(() => {
+    // Skip effect during SSR or on mobile
+    if (typeof window === "undefined" || isMobile) {
+      return;
+    }
+
     // Add cursor tracking
     const handleMouseMove = (e: MouseEvent) => {
       setPosition({ x: e.clientX, y: e.clientY });
@@ -49,16 +84,16 @@ const CustomCursor = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseover", handleMouseOver);
       clearTimeout(timer);
-      document.body.classList.remove("cursor-active");
+      if (document.body) {
+        document.body.classList.remove("cursor-active");
+      }
     };
-  }, []);
+  }, [isMobile]);
 
-  // Don't render the cursor on mobile devices
-  if (typeof window !== "undefined" && window.innerWidth <= 768) {
+  // Don't render the cursor on mobile devices or during SSR
+  if (isMobile || !isActive || typeof window === "undefined") {
     return null;
   }
-
-  if (!isActive) return null;
 
   return (
     <>

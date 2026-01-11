@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
 type Theme = "light" | "dark";
 
@@ -11,10 +17,15 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Server-side rendering safe initial theme (defaulting to light)
   const [theme, setTheme] = useState<Theme>("light");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Set mounted flag to true once component is mounted
+    setMounted(true);
+
     // Check for user preference in localStorage or system preference
     const savedTheme = localStorage.getItem("theme") as Theme | null;
     const prefersDark = window.matchMedia(
@@ -29,6 +40,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Only apply theme to document once component is mounted
+    // This prevents hydration mismatch errors
+    if (!mounted) return;
+
     // Apply theme to document
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
@@ -38,11 +53,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // Save theme preference
     localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
+
+  // Prevent rendering content until mounted to prevent hydration errors
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
